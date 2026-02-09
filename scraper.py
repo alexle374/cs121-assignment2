@@ -65,6 +65,7 @@ def extract_next_links(url, resp):
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
 
+    global longest_page
     links = []
 
     if not resp or resp.status != 200 or not resp.raw_response:
@@ -95,7 +96,7 @@ def extract_next_links(url, resp):
     html_links = html.find_all("a", href=True)
 
     # Remove the fragment from the URL and add the defragmented URL to the unique_pages set
-    defraged_url, _ = urldefrag(url)
+    defraged_url, _ = urldefrag(resp.url)
     if defraged_url not in unique_pages:
         unique_pages.add(defraged_url)
     
@@ -103,7 +104,7 @@ def extract_next_links(url, resp):
     text = html.get_text()
     words = re.findall(r"[a-zA-Z]+", text.lower())
     if len(words) > longest_page[1]:
-        longest_page = (url, len(words))
+        longest_page = (defraged_url, len(words))
     
     # Filter out stop words and update the common_words counter with the remaining words
     filter_words = [word for word in words if word not in STOP_WORDS]
@@ -111,8 +112,8 @@ def extract_next_links(url, resp):
 
     # parse the url to get the hostname and check if it belongs to uci.edu, if so, add it to the subdomains dictionary
     # The subdomains dictionary should have the subdomain as the key and a set of unique pages as the value.
-    parsed_url = urlparse(url)
-    hostname = parsed_url.hostname.lower()
+    parsed_url = urlparse(defraged_url)
+    hostname = (parsed_url.hostname or "").lower()
     if hostname.endswith("uci.edu"):
         if hostname not in subdomains:
             subdomains[hostname] = set()
