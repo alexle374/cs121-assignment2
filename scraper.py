@@ -1,5 +1,6 @@
 import re
 from urllib.parse import urlparse, urljoin, urldefrag
+from urllib.robotparser import RobotFileParser
 from bs4 import BeautifulSoup
 import json
 from collections import Counter
@@ -136,6 +137,19 @@ def is_valid(url):
     except TypeError:
         print ("TypeError for ", parsed)
         raise
+
+def can_crawl(url):
+    # Ensures crawlers are polite
+    # Checks robot.txt to ensure path can be crawled
+    # Return True if allowed otherwise False
+    parsed = urlparse(url)
+    robots_url = f"{parsed.scheme}://{parsed.netloc}/robots.txt"
+
+    rp = RobotFileParser()
+    rp.set_url(robots_url)
+    rp.read()
+
+    return rp.can_fetch("*", url)
 
 def is_calendar():
     pass
