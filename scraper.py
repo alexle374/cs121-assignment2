@@ -95,6 +95,10 @@ def extract_next_links(url, resp):
     html = BeautifulSoup(resp.raw_response.content, 'html.parser')
     html_links = html.find_all("a", href=True)
 
+    # Remove script, style, and noscript tags to avoid counting words in them 
+    for tag in html(["script", "style", "noscript"]):
+        tag.decompose()
+
     # Remove the fragment from the URL and add the defragmented URL to the unique_pages set
     defraged_url, _ = urldefrag(resp.url)
     if defraged_url not in unique_pages:
