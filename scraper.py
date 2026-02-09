@@ -128,7 +128,7 @@ def extract_next_links(url, resp):
         tag.decompose()
 
     # Update longest_page if the current page has more words than the longest page found so far
-    text = html.get_text()
+    text = html.get_text(separator=" ", strip=True)
     words = re.findall(r"[a-zA-Z]+", text.lower())
     if len(words) > longest_page[1]:
         longest_page = (defraged_url, len(words))
