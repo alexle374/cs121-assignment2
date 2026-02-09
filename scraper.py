@@ -77,6 +77,11 @@ def extract_next_links(url, resp):
     if "text/html" not in content_type:
         return links
     
+     # Remove the fragment from the URL and add the defragmented URL to the unique_pages set 
+    defraged_url, _ = urldefrag(resp.url)
+    if defraged_url not in unique_pages:
+        unique_pages.add(defraged_url)
+    
     content = raw.content
     # Skips pages that fulfill these conditions.
     # Pages with more than 5 mbs of content are too large, skip
@@ -99,11 +104,6 @@ def extract_next_links(url, resp):
     for tag in html(["script", "style", "noscript"]):
         tag.decompose()
 
-    # Remove the fragment from the URL and add the defragmented URL to the unique_pages set
-    defraged_url, _ = urldefrag(resp.url)
-    if defraged_url not in unique_pages:
-        unique_pages.add(defraged_url)
-    
     # Update longest_page if the current page has more words than the longest page found so far
     text = html.get_text()
     words = re.findall(r"[a-zA-Z]+", text.lower())
