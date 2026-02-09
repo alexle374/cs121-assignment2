@@ -174,6 +174,10 @@ def is_valid(url):
             return False
         
         url_lower = url.lower()
+
+        # Polite crawling
+        if not can_crawl(url):
+            return False
         
         # Trap protections
         # length limit
