@@ -82,11 +82,19 @@ def extract_next_links(url, resp):
     if defraged_url not in unique_pages:
         unique_pages.add(defraged_url)
     
-    content = raw.content
+    # parse the url to get the hostname and check if it belongs to uci.edu, if so, add it to the subdomains dictionary
+    # The subdomains dictionary should have the subdomain as the key and a set of unique pages as the value.
+    parsed_url = urlparse(defraged_url)
+    hostname = (parsed_url.hostname or "").lower()
+    if hostname.endswith("uci.edu"):
+        if hostname not in subdomains:
+            subdomains[hostname] = set()
+        subdomains[hostname].add(defraged_url)
+    
     # Skips pages that fulfill these conditions.
     # Pages with more than 5 mbs of content are too large, skip
     # Pages with less than 400 bytes of content are too small, skip
-  
+    content = raw.content
     # Large content
     if len(content) > 5000000:
         return links
@@ -113,15 +121,6 @@ def extract_next_links(url, resp):
     # Filter out stop words and update the common_words counter with the remaining words
     filter_words = [word for word in words if word not in STOP_WORDS]
     common_words.update(filter_words)
-
-    # parse the url to get the hostname and check if it belongs to uci.edu, if so, add it to the subdomains dictionary
-    # The subdomains dictionary should have the subdomain as the key and a set of unique pages as the value.
-    parsed_url = urlparse(defraged_url)
-    hostname = (parsed_url.hostname or "").lower()
-    if hostname.endswith("uci.edu"):
-        if hostname not in subdomains:
-            subdomains[hostname] = set()
-        subdomains[hostname].add(defraged_url)
 
     # grabs all the hyperlinks by checking for the href element
     # skip if there's no links or self links
