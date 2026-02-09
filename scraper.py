@@ -123,14 +123,32 @@ def is_valid(url):
         if parsed.scheme not in set(["http", "https"]):
             return False
         
+        # Must have hostname
         if not parsed.hostname:
             return False
         
+        # Restrict domains
         allowed_domains = (".ics.uci.edu", ".cs.uci.edu", ".informatics.uci.edu", ".stat.uci.edu")
         hostname = parsed.hostname.lower()
         if not hostname.endswith(allowed_domains):
             return False
-            
+        
+        url_lower = url.lower()
+        
+        # Trap protections
+        # length limit - to avoid infinite parameter chains
+        if len(url) > 250:
+            return False
+        
+        # crawler dead ends + interaction traps
+        if re.search(r"(login|logout|signin|signup|register|auth|reply|share)", url_lower):
+            return False
+        
+        # pagination traps
+        if re.search(r"(page=\d+|p=\d+)", url_lower):
+            return False
+        
+        
         return not re.match(
             r".*\.(css|js|bmp|gif|jpe?g|ico"
             + r"|png|tiff?|mid|mp2|mp3|mp4"
