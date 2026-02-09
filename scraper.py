@@ -3,7 +3,9 @@ from urllib.parse import urlparse, urljoin, urldefrag
 from bs4 import BeautifulSoup
 import json
 from collections import Counter
+import hashlib
 
+checksums = set()
 unique_pages = set()
 longest_page = ("", 0)
 common_words = Counter()
@@ -56,7 +58,10 @@ def extract_next_links(url, resp):
     # Little content
     if len(content) < 400:
         return links
-    
+    # Exact duplicate content
+    if is_exact_dupe(content):
+        return links
+
     html = BeautifulSoup(resp.raw_response.content, 'html.parser')
     html_links = html.find_all("a", href=True)
 
@@ -127,11 +132,15 @@ def is_valid(url):
         print ("TypeError for ", parsed)
         raise
 
-# Check if the url is a calendar trap
 def is_calendar():
     pass
 
-
+def is_exact_dupe(content):
+    digest = hashlib.md5(content).hexdigest()
+    if digest in checksums:
+        return True
+    checksums.add(digest)
+    return False
 
 
 def write_json_report():
