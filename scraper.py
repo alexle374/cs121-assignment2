@@ -164,8 +164,12 @@ def is_valid(url):
         url_lower = url.lower()
         
         # Trap protections
-        # length limit - to avoid infinite parameter chains
+        # length limit
         if len(url) > 250:
+            return False
+        
+        # excessive query strings
+        if parsed.query and len(parsed.query) > 100:
             return False
         
         # crawler dead ends + interaction traps
@@ -176,6 +180,7 @@ def is_valid(url):
         if re.search(r"(page=\d+|p=\d+)", url_lower):
             return False
         
+        #TODO: implement calendar
         
         return not re.match(
             r".*\.(css|js|bmp|gif|jpe?g|ico"
@@ -204,13 +209,8 @@ def can_crawl(url):
 
     return rp.can_fetch("*", url)
 
-def is_calendar(url):
-    # Checks if the url follows the common calendar patterns
-    # If so, return True. False otherwise.
-    for pattern in CALENDAR_PATTERNS:
-        if re.search(pattern, url, re.IGNORECASE):
-            return True
-    return False
+def is_calendar():
+    pass
 
 def is_exact_dupe(content):
     # Determines if pages have duplicate content
