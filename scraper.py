@@ -1,6 +1,24 @@
 import re
 from urllib.parse import urlparse, urljoin, urldefrag
 from bs4 import BeautifulSoup
+import json
+from collections import Counter
+
+unique_pages = set()
+longest_page = ("", 0)
+common_words = Counter()
+subdomains = {}
+
+STOP_WORDS = ["i", "me", "my", "myself", "we", "our", "ours", "ourselves", "you", "your", "yours", "yourself", "yourselves",
+              "he", "him", "his", "himself", "she", "her", "hers", "herself", "it", "its", "itself", "they", "them", "their",
+              "theirs", "themselves", "what", "which", "who", "whom", "this", "that", "these", "those", "am", "is", "are", "was",
+              "were", "be", "been", "being", "have", "has", "had", "having", "do", "does", "did", "doing", "a", "an", "the", "and",
+              "but", "if", "or", "because", "as", "until", "while", "of", "at", "by", "for", "with", "about", "against", "between",
+              "into", "through", "during", "before", "after", "above", "below", "to", "from", "up", "down", "in", "out", "on", "off",
+              "over", "under", "again", "further", "then", "once", "here", "there", "when", "where", "why", "how", "all", "any", "both",
+              "each", "few", "more", "most", "other", "some", "such", "no", "nor", "not", "only", "own", "same", "so", "than", "too", "very",
+              "s", "t", "can", "will", "just", "don", "should", "now"]
+#English Stop Words: "\b(i|me|my|myself|we|our|ours|ourselves|you|your|yours|yourself|yourselves|he|him|his|himself|she|her|hers|herself|it|its|itself|they|them|their|theirs|themselves|what|which|who|whom|this|that|these|those|am|is|are|was|were|be|been|being|have|has|had|having|do|does|did|doing|a|an|the|and|but|if|or|because|as|until|while|of|at|by|for|with|about|against|between|into|through|during|before|after|above|below|to|from|up|down|in|out|on|off|over|under|again|further|then|once|here|there|when|where|why|how|all|any|both|each|few|more|most|other|some|such|no|nor|not|only|own|same|so|than|too|very|s|t|can|will|just|don|should|now)\b"
 
 def scraper(url, resp):
     if resp.status != 200:
@@ -41,6 +59,26 @@ def extract_next_links(url, resp):
     
     html = BeautifulSoup(resp.raw_response.content, 'html.parser')
     html_links = html.find_all("a", href=True)
+
+    defraged_url, _ = urldefrag(url)
+    if defraged_url not in unique_pages:
+        unique_pages.add(defraged_url)
+    
+    text = html.get_text()
+    words = re.findall(r"[a-zA-Z]+", text.lower())
+    if len(words) > longest_page[1]:
+        longest_page = (url, len(words))
+    
+    filter_words = [word for word in words if word not in STOP_WORDS]
+    common_words.update(filter_words)
+
+    parsed_url = urlparse(url)
+    hostname = parsed_url.hostname.lower()
+    if hostname.endswith("uci.edu"):
+        if hostname not in subdomains:
+            subdomains[hostname] = set()
+        subdomains.add(defraged_url)
+
 
     for tag in html_links:
         href = tag.get("href")
@@ -92,3 +130,34 @@ def is_valid(url):
 # Check if the url is a calendar trap
 def is_calendar():
     pass
+
+
+
+
+def write_json_report():
+    report = {
+        "Number_of_unique_pages" : len(unique_pages),
+
+        "longest_page" : {
+            "url" : longest_page[0],
+            "word_count" : longest_page[1]
+        },
+
+         "top_50_words": [
+            {"word": word, "count": count}
+            for word, count in common_words.most_common(50)
+        ],
+
+        "subdomains" : {
+            "total" : len(subdomains),
+            "unique_pages_per_subdomain" : [
+                {
+                "subdomain" : subdomain,
+                "unique_pages": len(pages)
+            }
+            for subdomain, pages in sorted(subdomains.items())
+            ]
+        }
+    }
+    with open("report.json", "w") as f:
+        json.dump(report, f, indent=4)
