@@ -53,6 +53,10 @@ def extract_next_links(url, resp):
         return links
     
     content = raw.content
+    # Skips pages that fulfill these conditions.
+    # Pages with more than 5 mbs of content are too large, skip
+    # Pages with less than 400 bytes of content are too small, skip
+  
     # Large content
     if len(content) > 5000000:
         return links
@@ -90,7 +94,10 @@ def extract_next_links(url, resp):
             subdomains[hostname] = set()
         subdomains[hostname].add(defraged_url)
 
-
+    # grabs all the hyperlinks by checking for the href element
+    # skip if there's no links or self links
+    # then avoids basic crawler traps
+    # valid links are added into the list, then returned
     for tag in html_links:
         href = tag.get("href")
         if not href or href == "#":
@@ -155,6 +162,10 @@ def is_calendar():
     pass
 
 def is_exact_dupe(content):
+    # Determines if pages have duplicate content
+    # Does this through checksums hash function learned in class
+    # If it's been seen before, add it to a set for future checks and return True
+    # Otherwise, False
     digest = hashlib.md5(content).hexdigest()
     if digest in checksums:
         return True
