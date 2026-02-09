@@ -1,7 +1,11 @@
 import re
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin, urldefrag
+from bs4 import BeautifulSoup
 
 def scraper(url, resp):
+    if resp.status != 200:
+        return []
+    
     links = extract_next_links(url, resp)
     return [link for link in links if is_valid(link)]
 
@@ -15,7 +19,44 @@ def extract_next_links(url, resp):
     #         resp.raw_response.url: the url, again
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
-    return list()
+
+    links = []
+
+    if not resp or resp.status != 200 or not resp.raw_response:
+        return links
+    
+    raw = resp.raw_response
+
+    content_type = raw.headers.get("Content-Type", "").lower()
+    if "text/html" not in content_type:
+        return links
+    
+    content = raw.content
+    # Large content
+    if len(content) > 5000000:
+        return links
+    # Little content
+    if len(content) < 400:
+        return links
+    
+    html = BeautifulSoup(resp.raw_response.content, 'html.parser')
+    html_links = html.find_all("a", href=True)
+
+    for tag in html_links:
+        href = tag.get("href")
+        if not href or href == "#":
+            continue
+        try:
+            absolute_url = urljoin(url, href)
+            clean_url, _ = urldefrag(absolute_url)
+            if is_calendar(clean_url):
+                continue
+            if is_valid(clean_url):
+                links.append(clean_url)
+        except Exception as e:
+            print(f"Error parsing {href}: {e}")
+            continue
+    return links
 
 def is_valid(url):
     # Decide whether to crawl this url or not. 
@@ -47,3 +88,7 @@ def is_valid(url):
     except TypeError:
         print ("TypeError for ", parsed)
         raise
+
+# Check if the url is a calendar trap
+def is_calendar():
+    pass
