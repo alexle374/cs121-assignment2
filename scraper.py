@@ -23,6 +23,30 @@ STOP_WORDS = {"i", "me", "my", "myself", "we", "our", "ours", "ourselves", "you"
               "each", "few", "more", "most", "other", "some", "such", "no", "nor", "not", "only", "own", "same", "so", "than", "too", "very",
               "s", "t", "can", "will", "just", "don", "should", "now"}
 
+CALENDAR_PATTERNS = [
+    # The Events Calendar (WordPress)
+    r"[?&]tribe-bar-date=\d{4}-\d{2}-\d{2}",
+    r"[?&]eventDisplay=",
+    r"[?&]tribe_event_display=",
+
+    # Event views / pagination
+    r"/events/(list|month|week|day)/",
+    r"/events/list/page/\d+/?",
+    r"/events/page/\d+/?",
+
+    # Tag/date archives
+    r"/events/tag/[^/]+/\d{4}-\d{2}",
+    r"/events/tag/[^/]+/day/\d{4}-\d{2}",
+
+    # Generic calendar paths
+    r"/calendar/(page/\d+|month|week|day)/",
+    r"/calendar/\d{4}/(\d{2}/(\d{2}/)?)?",
+    r"/calendar/?$",
+
+    # Date archives
+    r"/events/\d{4}/\d{2}/(\d{2}/)?",
+]
+
 def scraper(url, resp):
     if resp.status != 200:
         return []
@@ -41,6 +65,7 @@ def extract_next_links(url, resp):
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
 
+    global longest_page
     links = []
 
     if not resp or resp.status != 200 or not resp.raw_response:
@@ -70,8 +95,12 @@ def extract_next_links(url, resp):
     html = BeautifulSoup(resp.raw_response.content, 'html.parser')
     html_links = html.find_all("a", href=True)
 
+    # Remove script, style, and noscript tags to avoid counting words in them 
+    for tag in html(["script", "style", "noscript"]):
+        tag.decompose()
+
     # Remove the fragment from the URL and add the defragmented URL to the unique_pages set
-    defraged_url, _ = urldefrag(url)
+    defraged_url, _ = urldefrag(resp.url)
     if defraged_url not in unique_pages:
         unique_pages.add(defraged_url)
     
@@ -79,7 +108,7 @@ def extract_next_links(url, resp):
     text = html.get_text()
     words = re.findall(r"[a-zA-Z]+", text.lower())
     if len(words) > longest_page[1]:
-        longest_page = (url, len(words))
+        longest_page = (defraged_url, len(words))
     
     # Filter out stop words and update the common_words counter with the remaining words
     filter_words = [word for word in words if word not in STOP_WORDS]
@@ -87,8 +116,8 @@ def extract_next_links(url, resp):
 
     # parse the url to get the hostname and check if it belongs to uci.edu, if so, add it to the subdomains dictionary
     # The subdomains dictionary should have the subdomain as the key and a set of unique pages as the value.
-    parsed_url = urlparse(url)
-    hostname = parsed_url.hostname.lower()
+    parsed_url = urlparse(defraged_url)
+    hostname = (parsed_url.hostname or "").lower()
     if hostname.endswith("uci.edu"):
         if hostname not in subdomains:
             subdomains[hostname] = set()
@@ -107,8 +136,7 @@ def extract_next_links(url, resp):
             clean_url, _ = urldefrag(absolute_url)
             if is_calendar(clean_url):
                 continue
-            if is_valid(clean_url):
-                links.append(clean_url)
+            links.append(clean_url)
         except Exception as e:
             print(f"Error parsing {href}: {e}")
             continue
@@ -176,8 +204,13 @@ def can_crawl(url):
 
     return rp.can_fetch("*", url)
 
-def is_calendar():
-    pass
+def is_calendar(url):
+    # Checks if the url follows the common calendar patterns
+    # If so, return True. False otherwise.
+    for pattern in CALENDAR_PATTERNS:
+        if re.search(pattern, url, re.IGNORECASE):
+            return True
+    return False
 
 def is_exact_dupe(content):
     # Determines if pages have duplicate content
