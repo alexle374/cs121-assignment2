@@ -47,6 +47,15 @@ CALENDAR_PATTERNS = [
     r"/events/\d{4}/\d{2}/(\d{2}/)?",
 ]
 
+TITLE_SOFT_404_PATTERNS = [
+    r"\b404\b",
+    r"\bnot found\b",
+    r"\berror\b",
+    r"\bno results\b",
+    r"\bpage not found\b",
+    r"\bunavailable\b",
+]
+
 def scraper(url, resp):
     if resp.status != 200:
         return []
@@ -105,7 +114,13 @@ def extract_next_links(url, resp):
     if is_exact_dupe(content):
         return links
 
-    html = BeautifulSoup(resp.raw_response.content, 'html.parser')
+    # make sure to pip install lxml
+    # it's a better parser than html.parser
+    html = BeautifulSoup(resp.raw_response.content, "lxml")
+    # Check soft pages
+    if is_soft_404(html):
+        return links
+
     html_links = html.find_all("a", href=True)
 
     # Remove script, style, and noscript tags to avoid counting words in them 
@@ -220,6 +235,16 @@ def is_exact_dupe(content):
     if digest in checksums:
         return True
     checksums.add(digest)
+    return False
+
+def is_soft_404(soup):
+    # Checks if the url leads to a dead page
+    # 200 status code, but contains basically no data
+    title = soup.title.string if soup.title else ""
+    title = title.lower()
+    for pattern in TITLE_SOFT_404_PATTERNS:
+        if re.search(pattern, title):
+            return True
     return False
 
 # Write the JSON report to a file named "report.json" with all extracted information
