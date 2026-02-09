@@ -133,8 +133,6 @@ def extract_next_links(url, resp):
         try:
             absolute_url = urljoin(url, href)
             clean_url, _ = urldefrag(absolute_url)
-            if is_calendar(clean_url):
-                continue
             links.append(clean_url)
         except Exception as e:
             print(f"Error parsing {href}: {e}")
@@ -179,7 +177,9 @@ def is_valid(url):
         if re.search(r"(page=\d+|p=\d+)", url_lower):
             return False
         
-        #TODO: implement calendar
+        # calendar traps
+        if is_calendar(url):
+            return False
         
         return not re.match(
             r".*\.(css|js|bmp|gif|jpe?g|ico"
@@ -208,8 +208,12 @@ def can_crawl(url):
 
     return rp.can_fetch("*", url)
 
-def is_calendar():
-    pass
+def is_calendar(url):
+    url_lower = url.lower()
+    for pattern in CALENDAR_PATTERNS:
+        if re.search(pattern, url_lower):
+            return True
+    return False
 
 def is_exact_dupe(content):
     # Determines if pages have duplicate content
