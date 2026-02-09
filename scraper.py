@@ -23,6 +23,30 @@ STOP_WORDS = {"i", "me", "my", "myself", "we", "our", "ours", "ourselves", "you"
               "each", "few", "more", "most", "other", "some", "such", "no", "nor", "not", "only", "own", "same", "so", "than", "too", "very",
               "s", "t", "can", "will", "just", "don", "should", "now"}
 
+CALENDAR_PATTERNS = [
+    # The Events Calendar (WordPress)
+    r"[?&]tribe-bar-date=\d{4}-\d{2}-\d{2}",
+    r"[?&]eventDisplay=",
+    r"[?&]tribe_event_display=",
+
+    # Event views / pagination
+    r"/events/(list|month|week|day)/",
+    r"/events/list/page/\d+/?",
+    r"/events/page/\d+/?",
+
+    # Tag/date archives
+    r"/events/tag/[^/]+/\d{4}-\d{2}",
+    r"/events/tag/[^/]+/day/\d{4}-\d{2}",
+
+    # Generic calendar paths
+    r"/calendar/(page/\d+|month|week|day)/",
+    r"/calendar/\d{4}/(\d{2}/(\d{2}/)?)?",
+    r"/calendar/?$",
+
+    # Date archives
+    r"/events/\d{4}/\d{2}/(\d{2}/)?",
+]
+
 def scraper(url, resp):
     if resp.status != 200:
         return []
@@ -107,8 +131,7 @@ def extract_next_links(url, resp):
             clean_url, _ = urldefrag(absolute_url)
             if is_calendar(clean_url):
                 continue
-            if is_valid(clean_url):
-                links.append(clean_url)
+            links.append(clean_url)
         except Exception as e:
             print(f"Error parsing {href}: {e}")
             continue
@@ -158,8 +181,13 @@ def can_crawl(url):
 
     return rp.can_fetch("*", url)
 
-def is_calendar():
-    pass
+def is_calendar(url):
+    # Checks if the url follows the common calendar patterns
+    # If so, return True. False otherwise.
+    for pattern in CALENDAR_PATTERNS:
+        if re.search(pattern, url, re.IGNORECASE):
+            return True
+    return False
 
 def is_exact_dupe(content):
     # Determines if pages have duplicate content
