@@ -123,8 +123,8 @@ def extract_next_links(url, resp):
 
     html_links = html.find_all("a", href=True)
 
-    # Remove script, style, and noscript tags to avoid counting words in them 
-    for tag in html(["script", "style", "noscript"]):
+    # Remove script, style, noscript, nav, and footer tags to avoid counting words in them 
+    for tag in html(["script", "style", "noscript", "nav", "footer"]):
         tag.decompose()
 
     # Update longest_page if the current page has more words than the longest page found so far
