@@ -142,7 +142,9 @@ def extract_next_links(url, resp):
     # then avoids basic crawler traps
     # valid links are added into the list, then returned
     for tag in html_links:
-        href = tag.get("href")
+        if not tag or not tag.has_attr("href"):
+            continue
+        href = tag["href"]
         if not href or href == "#":
             continue
         try:
