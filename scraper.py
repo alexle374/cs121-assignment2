@@ -222,9 +222,11 @@ def can_crawl(url):
 
     rp = RobotFileParser()
     rp.set_url(robots_url)
-    rp.read()
-
-    return rp.can_fetch("*", url)
+    try:
+        rp.read()
+        return rp.can_fetch("*", url)
+    except Exception:
+        return True
 
 def is_calendar(url):
     url_lower = url.lower()
