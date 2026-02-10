@@ -249,8 +249,9 @@ def is_exact_dupe(content):
 def is_soft_404(soup):
     # Checks if the url leads to a dead page
     # 200 status code, but contains basically no data
-    title = soup.title.string if soup.title else ""
-    title = title.lower()
+    title = ""
+    if soup.title and soup.title.string:
+        title = soup.title.string.lower()
     for pattern in TITLE_SOFT_404_PATTERNS:
         if re.search(pattern, title):
             return True
