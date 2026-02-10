@@ -148,6 +148,9 @@ def extract_next_links(url, resp):
         if not href or href == "#":
             continue
         try:
+            href = tag["href"]
+            if href == "#":
+                continue
             absolute_url = urljoin(url, href)
             clean_url, _ = urldefrag(absolute_url)
             links.append(clean_url)
