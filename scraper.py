@@ -150,7 +150,6 @@ def extract_next_links(url, resp):
             clean_url, _ = urldefrag(absolute_url)
             links.append(clean_url)
         except Exception as e:
-            print(f"Error parsing {href}: {e}")
             continue
     return links
 
