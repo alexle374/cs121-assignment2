@@ -169,10 +169,20 @@ def is_valid(url):
         # Restrict domains
         allowed_domains = (".ics.uci.edu", ".cs.uci.edu", ".informatics.uci.edu", ".stat.uci.edu")
         hostname = parsed.hostname.lower()
+        
+        if hostname == "gitlab.ics.uci.edu":
+            return False
+        
+        if hostname == "grape.ics.uci.edu" and "/wiki" in parsed.path.lower():
+            return False
+    
         if not hostname.endswith(allowed_domains):
             return False
         
         url_lower = url.lower()
+
+        if "/~eppstein/" in parsed.path.lower() or "/~dechter/publications" in parsed.path.lower():
+            return False
 
         # Polite crawling
         if not can_crawl(url):
