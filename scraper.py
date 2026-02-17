@@ -8,6 +8,8 @@ import hashlib
 
 checksums = set()
 # Data structures to store the required information for the report
+total_pages = 0
+total_pages_crawled = 0
 unique_pages = set()
 longest_page = ("", 0)
 common_words = Counter()
@@ -75,6 +77,8 @@ def extract_next_links(url, resp):
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
 
     global longest_page
+    global total_pages
+    global total_pages_crawled
     links = []
 
     if not resp or resp.status != 200 or not resp.raw_response:
@@ -86,7 +90,10 @@ def extract_next_links(url, resp):
     if "text/html" not in content_type:
         return links
     
-     # Remove the fragment from the URL and add the defragmented URL to the unique_pages set 
+    # Counting number of pages the crawler has seen in total
+    total_pages += 1
+    
+    # Remove the fragment from the URL and add the defragmented URL to the unique_pages set 
     defraged_url, _ = urldefrag(resp.url)
     if defraged_url not in unique_pages:
         unique_pages.add(defraged_url)
@@ -120,6 +127,9 @@ def extract_next_links(url, resp):
     # Check soft pages
     if is_soft_404(html):
         return links
+    
+    # Counting number of pages the crawler has crawled in total
+    total_pages_crawled += 1
 
     html_links = html.find_all("a", href=True)
 
@@ -273,7 +283,9 @@ def is_soft_404(soup):
 # Write the JSON report to a file named "report.json" with all extracted information
 def write_json_report():
     report = {
-        "Number_of_unique_pages" : len(unique_pages),
+        "total_pages_seen" : total_pages,
+        "total_pages_crawled" : total_pages_crawled,
+        "total_unique_pages" : len(unique_pages),
 
         "longest_page" : {
             "url" : longest_page[0],
