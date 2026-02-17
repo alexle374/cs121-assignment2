@@ -175,7 +175,10 @@ def is_valid(url):
         
         if hostname == "grape.ics.uci.edu" and "/wiki" in parsed.path.lower():
             return False
-    
+           
+        if (hostname == "swiki.ics.uci.edu" or hostname == "wiki.ics.uci.edu") and "/doku.php" in parsed.path.lower():
+            return False
+
         if not hostname.endswith(allowed_domains):
             return False
         
