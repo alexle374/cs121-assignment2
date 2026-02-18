@@ -7,6 +7,7 @@ from collections import Counter
 import hashlib
 
 checksums = set()
+seen_hashes = set()
 # Data structures to store the required information for the report
 total_pages = 0
 total_pages_crawled = 0
@@ -140,6 +141,16 @@ def extract_next_links(url, resp):
     # Update longest_page if the current page has more words than the longest page found so far
     text = html.get_text(separator=" ", strip=True)
     words = re.findall(r"[a-zA-Z]+", text.lower())
+
+    # If a page is tiny and contains few words, avoid crawling
+    if len(words) < 300:
+        return links
+
+    # Compute simhash and check if a similar hash has been seen before. If so, skip the page.
+    simhash = compute_fingerprint(words, 64)
+    if near_dupe(simhash):
+        return links
+
     if len(words) > longest_page[1]:
         longest_page = (defraged_url, len(words))
     
@@ -267,6 +278,42 @@ def is_exact_dupe(content):
     if digest in checksums:
         return True
     checksums.add(digest)
+    return False
+
+def _hash(token):
+    # Bit hash the token
+    hash = hashlib.md5(token.encode("utf-8")).digest()
+    return int.from_bytes(hash[:8], "big", signed=False)
+
+def compute_fingerprint(tokens, fingerprint_size):
+    # Computes a fingerprint using the given tokens
+    # Tokens are weighted by frequency
+    token_weights = Counter(tokens)
+    sim_vector = [0] * fingerprint_size
+    for token, weight in token_weights.items():
+        hashed_word = _hash(token)
+        for bit_pos in range(fingerprint_size):
+            bit = (hashed_word >> bit_pos) & 1
+            if bit:
+                sim_vector[bit_pos] += weight 
+            else:
+                sim_vector[bit_pos] -=weight
+        
+    fingerprint = 0
+    for bit_pos in range(fingerprint_size):
+        if sim_vector[bit_pos] > 0:
+            fingerprint |= (1 << bit_pos)
+    
+    return fingerprint
+
+def fingerprint_bit_diff(hash1, hash2):
+    return (hash1 ^ hash2).bit_count()
+
+def near_dupe(simhash):
+    for seen_hash in seen_hashes:
+        if fingerprint_bit_diff(simhash, seen_hash) <= 3:
+            return True
+    seen_hashes.add(simhash)
     return False
 
 def is_soft_404(soup):
