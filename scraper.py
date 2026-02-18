@@ -142,10 +142,6 @@ def extract_next_links(url, resp):
     text = html.get_text(separator=" ", strip=True)
     words = re.findall(r"[a-zA-Z]+", text.lower())
 
-    # If a page is tiny and contains few words, avoid crawling
-    if len(words) < 300:
-        return links
-
     # Compute simhash and check if a similar hash has been seen before. If so, skip the page.
     simhash = compute_fingerprint(words, 64)
     if near_dupe(simhash):
